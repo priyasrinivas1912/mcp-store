@@ -1,0 +1,6 @@
+{
+  "name": "MCP Store",
+  "description": "Discover, verify, and safely install Model Context Protocol (MCP) servers with multi-layer security auditing, trust scores, and one-click deployment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
