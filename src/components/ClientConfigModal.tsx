@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Cpu,
   X,
@@ -15,9 +15,11 @@ import {
   MessageSquare,
   Server,
   Zap,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
-import { MCPServer } from '../types';
+import { MCPServer, BridgeStatus } from '../types';
+import { InstallerService } from '../services/InstallerService';
 
 interface ClientConfigModalProps {
   isOpen: boolean;
@@ -36,6 +38,17 @@ export const ClientConfigModal: React.FC<ClientConfigModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [selectedClient, setSelectedClient] = useState<'claude' | 'cursor' | 'windsurf'>('claude');
+  const [activeBridges, setActiveBridges] = useState<BridgeStatus[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      InstallerService.detectAvailableBridges().then(bridges => {
+        setActiveBridges(bridges);
+      });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -76,13 +89,40 @@ export const ClientConfigModal: React.FC<ClientConfigModalProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handle1ClickSave = async () => {
+    setIsSyncing(true);
+    try {
+      const primary = await InstallerService.getPrimaryBridge();
+      if (primary.type === 'electron_ipc' && window.mcpDesktop) {
+        const parsed = JSON.parse(generateFullConfig());
+        await window.mcpDesktop.writeClaudeConfig(parsed.mcpServers || {});
+        setSyncFeedback('Auto-saved to Claude Desktop via Electron IPC!');
+      } else if (primary.type === 'local_daemon') {
+        const parsed = JSON.parse(generateFullConfig());
+        await fetch('http://127.0.0.1:4001/api/daemon/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serverId: 'bulk_sync',
+            serverConfig: parsed.mcpServers || {}
+          })
+        });
+        setSyncFeedback('Auto-saved via Localhost Bridge (127.0.0.1:4001)!');
+      } else {
+        InstallerService.downloadConfigFile(installedServers);
+        setSyncFeedback('Downloaded claude_desktop_config.json!');
+      }
+    } catch {
+      InstallerService.downloadConfigFile(installedServers);
+      setSyncFeedback('Downloaded claude_desktop_config.json!');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncFeedback(null), 3000);
+    }
+  };
+
   const downloadConfigFile = () => {
-    const blob = new Blob([generateFullConfig()], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = selectedClient === 'claude' ? 'claude_desktop_config.json' : 'mcp.json';
-    a.click();
+    InstallerService.downloadConfigFile(installedServers);
   };
 
   const getIcon = (id: string) => {
@@ -235,13 +275,48 @@ export const ClientConfigModal: React.FC<ClientConfigModalProps> = ({
               </div>
             </div>
 
+            {/* Backend & Companion Daemon Status Banner */}
+            <div className="p-3.5 rounded-xl bg-[#080808] border border-[#222222] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] animate-pulse shrink-0" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-white">Express Backend API Active</span>
+                    <span className="text-[10px] font-mono text-[#10b981] bg-[#10b981]/10 px-1.5 py-0.5 rounded border border-[#10b981]/20">
+                      Port 3000 / 4000
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#737373] font-mono mt-0.5">
+                    9-Stage Security Pipeline Armed • Auto-Updater Companion Ready
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handle1ClickSave}
+                disabled={isSyncing}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[#10b981] hover:bg-[#059669] text-black flex items-center gap-1.5 cursor-pointer transition-all shrink-0 disabled:opacity-50"
+              >
+                {isSyncing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                <span>{syncFeedback || '1-Click Auto-Save Config'}</span>
+              </button>
+            </div>
+
             <pre className="p-4 rounded-xl bg-[#050505] border border-[#1a1a1a] text-[#10b981] text-xs font-mono overflow-x-auto max-h-56 leading-relaxed">
               {generateFullConfig()}
             </pre>
 
-            <p className="text-[11px] text-[#555555] font-mono">
-              Desktop location: <code className="text-[#a3a3a3]">~/Library/Application Support/Claude/claude_desktop_config.json</code>
-            </p>
+            <div className="space-y-1 text-[11px] text-[#737373] font-mono">
+              <p>
+                <span className="text-[#a3a3a3]">macOS:</span> <code className="text-[#e5e5e5]">~/Library/Application Support/Claude/claude_desktop_config.json</code>
+              </p>
+              <p>
+                <span className="text-[#a3a3a3]">Windows:</span> <code className="text-[#e5e5e5]">%APPDATA%\Claude\claude_desktop_config.json</code>
+              </p>
+              <p className="pt-1 text-[#555555]">
+                💡 Tip: Run <code className="text-[#10b981]">npm run companion</code> or <code className="text-[#10b981]">npm run server:4000</code> to launch the background local config auto-patcher daemon.
+              </p>
+            </div>
           </div>
         </div>
 

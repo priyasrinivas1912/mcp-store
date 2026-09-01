@@ -163,3 +163,32 @@ export interface UserProfile {
   organization?: string;
   verifiedInstallAllowed?: boolean;
 }
+
+export type BridgeType = 'electron_ipc' | 'local_daemon' | 'file_system_api' | 'backend_proxy' | 'direct_download';
+
+export interface BridgeStatus {
+  type: BridgeType;
+  name: string;
+  isAvailable: boolean;
+  endpoint?: string;
+  latencyMs?: number;
+  description: string;
+  capabilities: {
+    canDirectWrite: boolean;
+    canExecuteProcess: boolean;
+    canReadConfig: boolean;
+  };
+}
+
+export interface InstallExecutionResult {
+  success: boolean;
+  bridgeUsed: BridgeType;
+  bridgeName: string;
+  server: MCPServer;
+  configUpdated: boolean;
+  targetConfigPath?: string;
+  logs: string[];
+  durationMs: number;
+  claudeDesktopConfig?: Record<string, any>;
+  errorMessage?: string;
+}

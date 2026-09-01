@@ -6,9 +6,59 @@ import { MOCK_SERVERS } from "./src/data/mockServers.ts";
 import { MCPServer, SecurityReport } from "./src/types.ts";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
+
+// Enable CORS for all origins (supports Vercel, localhost:3000, localhost:4000, Electron, etc.)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// Health check endpoint for container / Vercel / Kubernetes
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "MCP Store Registry & Security Engine",
+    version: "2.4.0",
+    uptime: process.uptime(),
+    port: PORT,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// System architecture & active layers status
+app.get("/api/system/status", (req, res) => {
+  res.json({
+    engine: "Express API + 9-Stage Zero-Trust Pipeline",
+    securityLayers: [
+      { layer: 0, name: "Metadata Risk & KYC", tool: "PolicyLayer", active: true },
+      { layer: 1, name: "Static Code Analysis", tool: "Semgrep / mcp-safeguard", active: true },
+      { layer: 2, name: "Dependency Vulnerability Scan", tool: "OSV-Scanner / npm audit", active: true },
+      { layer: 3, name: "Dynamic JSON-RPC Fuzzing", tool: "Ghostprobe", active: true },
+      { layer: 4, name: "Runtime Container Sandbox", tool: "Docker", active: true },
+      { layer: 5, name: "Composite Security Triage", tool: "Hermes", active: true },
+      { layer: 6, name: "Runtime Firewall Guardrails", tool: "MCPGuard", active: true },
+      { layer: 7, name: "Supply Chain & Image Verification", tool: "Cosign + SLSA + Trivy", active: true },
+      { layer: 8, name: "Registry Attestation & Certification", tool: "AuditCore", active: true }
+    ],
+    desktopUpdater: {
+      status: "ACTIVE",
+      supportedClients: ["Claude Desktop", "Cursor", "Windsurf"],
+      targetConfigPath: {
+        mac: "~/Library/Application Support/Claude/claude_desktop_config.json",
+        windows: "%APPDATA%\\Claude\\claude_desktop_config.json",
+        linux: "~/.config/Claude/claude_desktop_config.json"
+      }
+    }
+  });
+});
 
 // In-memory store for installed servers and custom audited servers
 let serversList: MCPServer[] = [...MOCK_SERVERS];

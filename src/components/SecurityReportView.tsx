@@ -451,37 +451,37 @@ export const SecurityReportView: React.FC<SecurityReportViewProps> = ({
       </div>
 
       {/* Interactive Runtime Firewall & Sandbox Simulator */}
-      <div className="rounded-2xl bg-[#0a0a0a] border border-[#1a1a1a] p-6 shadow-2xl space-y-5">
+      <div className="rounded-2xl bg-[#0a0a0a] border border-[#1a1a1a] p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-medium text-white flex items-center gap-2 font-serif-display">
-              <Lock className="w-5 h-5 text-amber-400" />
+            <h2 className="text-sm sm:text-base font-medium text-white flex items-center gap-2 font-serif-display">
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
               Interactive Runtime Firewall Simulator
             </h2>
-            <p className="text-xs text-[#737373] mt-0.5">
+            <p className="text-[11px] sm:text-xs text-[#737373] mt-0.5">
               Simulate dynamic tool call inputs against active firewall tripwires in real-time.
             </p>
           </div>
-          <span className="text-xs font-mono text-[#10b981] bg-[#10b981]/10 px-2.5 py-1 rounded border border-[#10b981]/20">
+          <span className="text-[10px] sm:text-xs font-mono text-[#10b981] bg-[#10b981]/10 px-2.5 py-1 rounded border border-[#10b981]/20 self-start sm:self-auto">
             {report.firewallRules.length} Rules Armed
           </span>
         </div>
 
-        {/* Test Scenarios */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+        {/* Test Scenarios - 2x2 Grid on Mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
             onClick={() => {
               setTestPayloadType('normal');
               handleSimulateFirewall('normal');
             }}
-            className={`p-2.5 rounded text-left text-xs font-semibold border transition-all cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-lg text-left text-xs font-semibold border transition-all cursor-pointer ${
               testPayloadType === 'normal'
                 ? 'bg-[#111111] text-[#10b981] border-[#10b981]/40'
                 : 'bg-[#050505] text-[#737373] border-[#1a1a1a] hover:bg-[#111111] hover:text-white'
             }`}
           >
-            <p className="font-bold">✓ Benign Payload</p>
-            <p className="text-[10px] text-[#555555] font-mono mt-0.5">query: &quot;documentation&quot;</p>
+            <p className="font-bold text-[11px] sm:text-xs truncate">✓ Benign Payload</p>
+            <p className="text-[9px] sm:text-[10px] text-[#555555] font-mono mt-0.5 truncate">query: &quot;docs&quot;</p>
           </button>
 
           <button
@@ -489,14 +489,14 @@ export const SecurityReportView: React.FC<SecurityReportViewProps> = ({
               setTestPayloadType('traversal');
               handleSimulateFirewall('traversal');
             }}
-            className={`p-2.5 rounded text-left text-xs font-semibold border transition-all cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-lg text-left text-xs font-semibold border transition-all cursor-pointer ${
               testPayloadType === 'traversal'
                 ? 'bg-[#111111] text-rose-300 border-rose-500/40'
                 : 'bg-[#050505] text-[#737373] border-[#1a1a1a] hover:bg-[#111111] hover:text-white'
             }`}
           >
-            <p className="font-bold">⚠️ Path Traversal</p>
-            <p className="text-[10px] text-[#555555] font-mono mt-0.5">path: &quot;../../etc/passwd&quot;</p>
+            <p className="font-bold text-[11px] sm:text-xs truncate">⚠️ Path Traversal</p>
+            <p className="text-[9px] sm:text-[10px] text-[#555555] font-mono mt-0.5 truncate">path: &quot;../../passwd&quot;</p>
           </button>
 
           <button
@@ -504,14 +504,14 @@ export const SecurityReportView: React.FC<SecurityReportViewProps> = ({
               setTestPayloadType('injection');
               handleSimulateFirewall('injection');
             }}
-            className={`p-2.5 rounded text-left text-xs font-semibold border transition-all cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-lg text-left text-xs font-semibold border transition-all cursor-pointer ${
               testPayloadType === 'injection'
                 ? 'bg-[#111111] text-amber-300 border-amber-500/40'
                 : 'bg-[#050505] text-[#737373] border-[#1a1a1a] hover:bg-[#111111] hover:text-white'
             }`}
           >
-            <p className="font-bold">⚠️ Token Injection</p>
-            <p className="text-[10px] text-[#555555] font-mono mt-0.5">payload: &quot;ghp_secretToken&quot;</p>
+            <p className="font-bold text-[11px] sm:text-xs truncate">⚠️ Token Leak</p>
+            <p className="text-[9px] sm:text-[10px] text-[#555555] font-mono mt-0.5 truncate">ghp_secretToken</p>
           </button>
 
           <button
@@ -519,14 +519,14 @@ export const SecurityReportView: React.FC<SecurityReportViewProps> = ({
               setTestPayloadType('eval');
               handleSimulateFirewall('eval');
             }}
-            className={`p-2.5 rounded text-left text-xs font-semibold border transition-all cursor-pointer ${
+            className={`p-2 sm:p-2.5 rounded-lg text-left text-xs font-semibold border transition-all cursor-pointer ${
               testPayloadType === 'eval'
                 ? 'bg-[#111111] text-rose-300 border-rose-500/40'
                 : 'bg-[#050505] text-[#737373] border-[#1a1a1a] hover:bg-[#111111] hover:text-white'
             }`}
           >
-            <p className="font-bold">🚨 Dynamic eval()</p>
-            <p className="text-[10px] text-[#555555] font-mono mt-0.5">payload: &quot;eval(base64)&quot;</p>
+            <p className="font-bold text-[11px] sm:text-xs truncate">🚨 Dynamic eval()</p>
+            <p className="text-[9px] sm:text-[10px] text-[#555555] font-mono mt-0.5 truncate">eval(base64)</p>
           </button>
         </div>
 
