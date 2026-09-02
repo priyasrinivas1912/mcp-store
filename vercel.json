@@ -6,18 +6,32 @@
     "api/**/*.ts": {
       "memory": 3008,
       "maxDuration": 60,
-      "includeFiles": "{src/data/**,src/**,api/**}"
+      "includeFiles": "src/data/mockServers.ts"
     },
     "api/*.ts": {
       "memory": 3008,
       "maxDuration": 60,
-      "includeFiles": "{src/data/**,src/**,api/**}"
+      "includeFiles": "src/data/mockServers.ts"
+    },
+    "api/index.ts": {
+      "memory": 3008,
+      "maxDuration": 60,
+      "includeFiles": "src/data/mockServers.ts"
+    },
+    "api/index.js": {
+      "memory": 3008,
+      "maxDuration": 60,
+      "includeFiles": "src/data/mockServers.ts"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api",
+      "destination": "/api/index.js"
     },
     {
       "source": "/((?!api/).*)",
