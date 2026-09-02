@@ -16,9 +16,11 @@ import { ClientConfigModal } from './components/ClientConfigModal';
 import { LiveAuditorModal } from './components/LiveAuditorModal';
 import { LoginModal } from './components/LoginModal';
 import { SecurityArchitectureModal } from './components/SecurityArchitectureModal';
+import { AuthPage } from './components/AuthPage';
 import { ShieldCheck, Zap, Sparkles, Layers } from 'lucide-react';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [servers, setServers] = useState<MCPServer[]>(MOCK_MCP_SERVERS);
   const [selectedServer, setSelectedServer] = useState<MCPServer>(MOCK_MCP_SERVERS[0]);
   const [currentTab, setCurrentTab] = useState<'home' | 'directory' | 'security' | 'details'>('home');
@@ -42,6 +44,21 @@ export default function App() {
     organization: 'Anthropic / MCP Workgroup'
   });
 
+  // Restore session from token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('mcp_auth_token');
+    const savedProfile = localStorage.getItem('mcp_user_profile');
+    if (token && savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        setCurrentUser(parsed);
+        setIsAuthenticated(true);
+      } catch (e) {
+        localStorage.removeItem('mcp_auth_token');
+      }
+    }
+  }, []);
+
   // Load servers from backend API
   useEffect(() => {
     fetch('/api/servers')
@@ -58,6 +75,19 @@ export default function App() {
         console.warn('Using mock servers fallback:', err);
       });
   }, []);
+
+  const handleSignOut = () => {
+    const token = localStorage.getItem('mcp_auth_token');
+    if (token) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    }
+    localStorage.removeItem('mcp_auth_token');
+    localStorage.removeItem('mcp_user_profile');
+    setIsAuthenticated(false);
+  };
 
   const handleSelectServer = (server: MCPServer) => {
     setSelectedServer(server);
@@ -113,8 +143,19 @@ export default function App() {
 
   const installedCount = servers.filter((s) => s.installed).length;
 
+  if (!isAuthenticated) {
+    return (
+      <AuthPage
+        onLogin={(user) => {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e5e5e5] font-sans selection:bg-[#10b981]/25 selection:text-[#10b981] flex flex-col">
+    <div className="min-h-screen bg-[#050505] text-[#e5e5e5] font-sans selection:bg-[#10b981]/25 selection:text-[#10b981] flex flex-col animate-fadeIn">
       {/* Primary Navigation Bar */}
       <Navbar
         currentTab={currentTab === 'details' ? 'directory' : currentTab}
@@ -130,6 +171,7 @@ export default function App() {
         onOpenClientConfig={() => setIsClientConfigOpen(true)}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onOpenArchitectureModal={() => setIsArchitectureModalOpen(true)}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Container */}
@@ -248,6 +290,10 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         currentUser={currentUser}
         onSelectUser={(u) => setCurrentUser(u)}
+        onSignOut={() => {
+          setIsLoginModalOpen(false);
+          handleSignOut();
+        }}
       />
 
       {/* 9-Stage Security Architecture & Tool Matrix Modal */}

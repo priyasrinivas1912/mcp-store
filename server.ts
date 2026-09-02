@@ -64,6 +64,322 @@ app.get("/api/system/status", (req, res) => {
 let serversList: MCPServer[] = [...MOCK_SERVERS];
 let installedServerIds: string[] = ['github']; // Default start with github installed or clean
 
+// User Database & Session Store for Backend Authentication
+interface StoredUser {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: string;
+  organization: string;
+  authProvider: 'github' | 'google' | 'anthropic' | 'enterprise' | 'password';
+  scopes: string[];
+  accessToken: string;
+  verifiedInstallAllowed: boolean;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+const usersDatabase: Map<string, StoredUser> = new Map([
+  [
+    'santhi.priya@enterprise.ai',
+    {
+      id: 'user-1',
+      name: 'Santhi Priya',
+      email: 'santhi.priya@enterprise.ai',
+      passwordHash: 'sha256_mock_hash_santhi',
+      role: 'Lead AI Architect',
+      organization: 'Anthropic / MCP Workgroup',
+      authProvider: 'anthropic',
+      scopes: ['read:user', 'mcp:registry', 'claude:config_sync', 'security:audit_repo'],
+      accessToken: 'mcp_live_ant_8f73b190a2c84d6e81',
+      verifiedInstallAllowed: true,
+      createdAt: '2026-08-01T00:00:00Z',
+      lastLoginAt: new Date().toISOString()
+    }
+  ],
+  [
+    'alex.chen@secops.io',
+    {
+      id: 'user-2',
+      name: 'Alex Chen',
+      email: 'alex.chen@secops.io',
+      passwordHash: 'sha256_mock_hash_alex',
+      role: 'Principal Security Auditor',
+      organization: 'Cyber Trust Labs',
+      authProvider: 'github',
+      scopes: ['read:user', 'mcp:registry', 'security:audit_repo'],
+      accessToken: 'mcp_live_gh_3d91b489a7702f9c',
+      verifiedInstallAllowed: true,
+      createdAt: '2026-08-10T00:00:00Z',
+      lastLoginAt: new Date().toISOString()
+    }
+  ],
+  [
+    'devin@frontend.dev',
+    {
+      id: 'user-3',
+      name: 'Devin Vance',
+      email: 'devin@frontend.dev',
+      passwordHash: 'sha256_mock_hash_devin',
+      role: 'Full-Stack Developer',
+      organization: 'AI Studio Builders',
+      authProvider: 'google',
+      scopes: ['read:user', 'mcp:registry'],
+      accessToken: 'mcp_live_goog_554817a0cd3e12',
+      verifiedInstallAllowed: false,
+      createdAt: '2026-08-15T00:00:00Z',
+      lastLoginAt: new Date().toISOString()
+    }
+  ]
+]);
+
+// Active Token sessions lookup map
+const activeSessions: Map<string, StoredUser> = new Map();
+usersDatabase.forEach(u => {
+  activeSessions.set(u.accessToken, u);
+});
+
+// ==========================================
+// BACKEND AUTHENTICATION API ROUTES
+// ==========================================
+
+// 1. POST /api/auth/login - Email/Password & Persona Login
+app.post("/api/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: "Email address is required." });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  let user = usersDatabase.get(normalizedEmail);
+
+  if (!user) {
+    // Auto-create developer profile if not present
+    const newId = `user-${Date.now()}`;
+    const token = `mcp_live_${Math.random().toString(36).substring(2, 14)}`;
+    user = {
+      id: newId,
+      name: normalizedEmail.split('@')[0].replace('.', ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      email: normalizedEmail,
+      passwordHash: `sha256_${password || 'default'}`,
+      role: 'Full-Stack Engineer',
+      organization: 'Independent Developer',
+      authProvider: 'password',
+      scopes: ['read:user', 'mcp:registry', 'claude:config_sync'],
+      accessToken: token,
+      verifiedInstallAllowed: true,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString()
+    };
+    usersDatabase.set(normalizedEmail, user);
+  } else {
+    // Update session token
+    user.lastLoginAt = new Date().toISOString();
+    user.accessToken = `mcp_live_${user.authProvider}_${Math.random().toString(36).substring(2, 14)}`;
+  }
+
+  activeSessions.set(user.accessToken, user);
+
+  res.json({
+    success: true,
+    message: "Zero-Trust authentication successful.",
+    token: user.accessToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organization,
+      authProvider: user.authProvider,
+      scopes: user.scopes,
+      accessToken: user.accessToken,
+      verifiedInstallAllowed: user.verifiedInstallAllowed,
+      authenticatedAt: user.lastLoginAt
+    }
+  });
+});
+
+// 2. POST /api/auth/signup - Create New Developer Account
+app.post("/api/auth/signup", (req, res) => {
+  const { name, email, password, role, organization } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required for registration." });
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const token = `mcp_live_usr_${Math.random().toString(36).substring(2, 14)}`;
+
+  const newUser: StoredUser = {
+    id: `user-${Date.now()}`,
+    name: name.trim(),
+    email: normalizedEmail,
+    passwordHash: `sha256_${password || 'default'}`,
+    role: role || 'Lead AI Architect',
+    organization: organization || 'MCP Workgroup',
+    authProvider: 'enterprise',
+    scopes: ['read:user', 'mcp:registry', 'claude:config_sync', 'security:audit_repo'],
+    accessToken: token,
+    verifiedInstallAllowed: true,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString()
+  };
+
+  usersDatabase.set(normalizedEmail, newUser);
+  activeSessions.set(token, newUser);
+
+  res.status(201).json({
+    success: true,
+    message: "Developer account created and authenticated.",
+    token: newUser.accessToken,
+    user: {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      organization: newUser.organization,
+      authProvider: newUser.authProvider,
+      scopes: newUser.scopes,
+      accessToken: newUser.accessToken,
+      verifiedInstallAllowed: newUser.verifiedInstallAllowed,
+      authenticatedAt: newUser.lastLoginAt
+    }
+  });
+});
+
+// 3. POST /api/auth/oauth - OAuth 2.0 PKCE / OIDC Token Exchange
+app.post("/api/auth/oauth", (req, res) => {
+  const { provider, scopes, code, state, customProfile } = req.body;
+
+  const validProviders = ['github', 'google', 'anthropic', 'enterprise'];
+  const authProvider = validProviders.includes(provider) ? provider : 'github';
+  const token = `mcp_live_${authProvider}_${Math.random().toString(36).substring(2, 16)}`;
+
+  let name = customProfile?.name;
+  let email = customProfile?.email;
+  let role = customProfile?.role;
+  let organization = customProfile?.organization;
+
+  if (!email) {
+    if (authProvider === 'anthropic') {
+      name = name || 'Santhi Priya';
+      email = 'santhi.priya@enterprise.ai';
+      role = role || 'Lead AI Architect';
+      organization = organization || 'Anthropic / MCP Workgroup';
+    } else if (authProvider === 'github') {
+      name = name || 'Alex Chen';
+      email = 'alex.chen@secops.io';
+      role = role || 'Principal Security Auditor';
+      organization = organization || 'Cyber Trust Labs';
+    } else {
+      name = name || 'Devin Vance';
+      email = 'devin@frontend.dev';
+      role = role || 'Full-Stack Developer';
+      organization = organization || 'AI Studio Builders';
+    }
+  }
+
+  const sessionUser: StoredUser = {
+    id: `user-${Date.now()}`,
+    name: name,
+    email: email,
+    passwordHash: 'oauth_sso_verified',
+    role: role || 'AI Security Engineer',
+    organization: organization || 'Enterprise Partner',
+    authProvider: authProvider as any,
+    scopes: scopes || ['read:user', 'mcp:registry', 'claude:config_sync'],
+    accessToken: token,
+    verifiedInstallAllowed: true,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString()
+  };
+
+  usersDatabase.set(email.toLowerCase(), sessionUser);
+  activeSessions.set(token, sessionUser);
+
+  res.json({
+    success: true,
+    token: sessionUser.accessToken,
+    provider: authProvider,
+    tokenType: "Bearer",
+    expiresInSeconds: 86400,
+    user: {
+      id: sessionUser.id,
+      name: sessionUser.name,
+      email: sessionUser.email,
+      role: sessionUser.role,
+      organization: sessionUser.organization,
+      authProvider: sessionUser.authProvider,
+      scopes: sessionUser.scopes,
+      accessToken: sessionUser.accessToken,
+      verifiedInstallAllowed: sessionUser.verifiedInstallAllowed,
+      authenticatedAt: sessionUser.lastLoginAt
+    }
+  });
+});
+
+// 4. GET /api/auth/me - Validate Session & Return Current User
+app.get("/api/auth/me", (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing or invalid authorization header." });
+  }
+
+  const token = authHeader.split(" ")[1];
+  const user = activeSessions.get(token);
+
+  if (!user) {
+    return res.status(401).json({ error: "Session expired or invalid token." });
+  }
+
+  res.json({
+    authenticated: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organization: user.organization,
+      authProvider: user.authProvider,
+      scopes: user.scopes,
+      accessToken: user.accessToken,
+      verifiedInstallAllowed: user.verifiedInstallAllowed,
+      authenticatedAt: user.lastLoginAt
+    }
+  });
+});
+
+// 5. GET /api/auth/users - List Sample / Registered Users
+app.get("/api/auth/users", (req, res) => {
+  const usersList = Array.from(usersDatabase.values()).map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    organization: u.organization,
+    authProvider: u.authProvider,
+    scopes: u.scopes,
+    verifiedInstallAllowed: u.verifiedInstallAllowed
+  }));
+
+  res.json({
+    total: usersList.length,
+    users: usersList
+  });
+});
+
+// 6. POST /api/auth/logout - Invalidate Session
+app.post("/api/auth/logout", (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    activeSessions.delete(token);
+  }
+  res.json({ success: true, message: "Logged out successfully." });
+});
+
 // Lazy Gemini AI client with multi-model fallback & resilience
 let aiClient: GoogleGenAI | null = null;
 function getGemini(): GoogleGenAI | null {

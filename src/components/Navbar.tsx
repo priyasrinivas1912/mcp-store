@@ -24,6 +24,7 @@ interface NavbarProps {
   onOpenClientConfig: () => void;
   onOpenLoginModal: () => void;
   onOpenArchitectureModal: () => void;
+  onSignOut?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -37,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenClientConfig,
   onOpenLoginModal,
   onOpenArchitectureModal,
+  onSignOut,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -156,13 +158,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 onClick={onOpenClientConfig}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#999999] hover:text-white bg-[#111111] hover:bg-[#161616] border border-[#222222] hover:border-[#333333] transition-all cursor-pointer whitespace-nowrap"
-                title="Claude Desktop Config"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#e5e5e5] hover:text-white bg-[#141414] hover:bg-[#1f1f1f] border border-[#2a2a2a] hover:border-[#10b981]/50 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+                title="Open Claude Desktop Client Config (claude_desktop_config.json)"
               >
-                <div className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
-                <Cpu className="w-3.5 h-3.5 text-[#737373]" />
-                <span>Claude</span>
-                <span className="px-1.5 py-0.2 rounded bg-[#1c1c1c] text-[10px] font-mono text-[#10b981] font-semibold">
+                <Cpu className="w-3.5 h-3.5 text-[#10b981]" />
+                <span>Client Config</span>
+                <span className="px-1.5 py-0.5 rounded bg-[#222222] text-[10px] font-mono text-[#10b981] font-bold">
                   {installedCount}
                 </span>
               </button>
@@ -177,10 +178,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 onClick={onOpenLoginModal}
-                className="w-7 h-7 rounded-lg bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] flex items-center justify-center text-xs font-semibold text-[#10b981] cursor-pointer transition-colors ml-1"
-                title={`${user.name} (${user.role})`}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#161616] hover:bg-[#222222] border border-[#2a2a2a] hover:border-[#10b981]/40 text-xs font-semibold text-white cursor-pointer transition-colors ml-1"
+                title={`Signed in as ${user.name} (${user.role}) - Click to switch or manage account`}
               >
-                {user.name.charAt(0)}
+                <div className="w-5 h-5 rounded-full bg-[#10b981]/20 text-[#10b981] flex items-center justify-center text-[10px] font-bold">
+                  {user.name.charAt(0)}
+                </div>
+                <span className="hidden lg:inline text-xs font-medium text-[#d4d4d4] max-w-[90px] truncate">{user.name.split(' ')[0]}</span>
               </button>
             </div>
 

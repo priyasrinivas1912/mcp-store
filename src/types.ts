@@ -162,6 +162,11 @@ export interface UserProfile {
   avatarUrl?: string;
   organization?: string;
   verifiedInstallAllowed?: boolean;
+  authProvider?: 'github' | 'google' | 'anthropic' | 'enterprise' | 'guest';
+  accessToken?: string;
+  scopes?: string[];
+  authenticatedAt?: string;
+  tokenExpiry?: string;
 }
 
 export type BridgeType = 'electron_ipc' | 'local_daemon' | 'file_system_api' | 'backend_proxy' | 'direct_download';
