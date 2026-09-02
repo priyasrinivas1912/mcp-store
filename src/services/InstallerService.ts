@@ -9,6 +9,7 @@
  */
 
 import { MCPServer, BridgeStatus, BridgeType, InstallExecutionResult } from '../types';
+import { apiDebugLogger } from '../utils/api-debug';
 
 declare global {
   interface Window {
@@ -247,21 +248,49 @@ class InstallerServiceClass {
       } else {
         // Backend API sync + Dynamic file generator
         log(2, 'Installation started', `[API] Synchronizing server state with Express Registry backend...`);
+        const startTime = performance.now();
+        const payload = {
+          serverId: server.id,
+          envVars,
+          clientTarget: 'claude-desktop'
+        };
         const resp = await fetch('/api/install', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            serverId: server.id,
-            envVars,
-            clientTarget: 'claude-desktop'
-          })
+          body: JSON.stringify(payload)
+        });
+        const durationMs = Math.round(performance.now() - startTime);
+        const rawText = await resp.text();
+
+        if (resp.status >= 400 || !resp.ok) {
+          console.group(`🚨 [HTTP ${resp.status} DETECTED] /api/install`);
+          console.error('Status Code:', resp.status, resp.statusText);
+          console.error('Request Payload:', payload);
+          console.error('Full Response Body:', rawText);
+          console.groupEnd();
+        }
+
+        apiDebugLogger.log({
+          endpoint: '/api/install',
+          method: 'POST',
+          status: resp.status,
+          statusText: resp.statusText,
+          durationMs,
+          requestPayload: payload,
+          responsePayload: rawText,
+          type: 'INSTALL',
+          success: resp.ok
         });
 
         if (resp.ok) {
-          const data = await resp.json();
-          configUpdated = true;
-          claudeDesktopConfig = data.claudeDesktopConfig;
-          log(3, 'Configuration updated', `[CONFIG] Registry state synchronized. Generated executable config block.`);
+          try {
+            const data = JSON.parse(rawText);
+            configUpdated = true;
+            claudeDesktopConfig = data.claudeDesktopConfig;
+            log(3, 'Configuration updated', `[CONFIG] Registry state synchronized. Generated executable config block.`);
+          } catch {
+            configUpdated = true;
+          }
         }
       }
     } catch (err: any) {

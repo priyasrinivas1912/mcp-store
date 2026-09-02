@@ -18,6 +18,7 @@ import { LoginModal } from './components/LoginModal';
 import { SecurityArchitectureModal } from './components/SecurityArchitectureModal';
 import { AuthPage } from './components/AuthPage';
 import { ShieldCheck, Zap, Sparkles, Layers } from 'lucide-react';
+import { apiDebugLogger } from './utils/api-debug';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -61,36 +62,90 @@ export default function App() {
 
   // Load servers from backend API
   useEffect(() => {
-    fetch('/api/servers')
-      .then(async (res) => {
-        if (!res.ok) return null;
-        try {
-          return await res.json();
-        } catch {
-          return null;
+    const fetchServers = async () => {
+      const startTime = performance.now();
+      try {
+        const res = await fetch('/api/servers');
+        const durationMs = Math.round(performance.now() - startTime);
+        const rawText = await res.text();
+
+        if (res.status >= 400 || !res.ok) {
+          console.group(`🚨 [HTTP ${res.status} DETECTED] /api/servers`);
+          console.error('Status Code:', res.status, res.statusText);
+          console.error('Full Response Body:', rawText);
+          if (rawText.includes('FUNCTION_INVOCATION_FAILED') || rawText.includes('bom1::')) {
+            console.error('Edge Gateway Exception Code:', rawText.match(/bom1::[a-zA-Z0-9\-_]+/)?.[0] || 'FUNCTION_INVOCATION_FAILED');
+          }
+          console.groupEnd();
         }
-      })
-      .then((data) => {
-        if (data && data.servers && data.servers.length > 0) {
-          setServers(data.servers);
-          const githubServer = data.servers.find((s: MCPServer) => s.id === 'github') || data.servers[0];
-          setSelectedServer(githubServer);
+
+        apiDebugLogger.log({
+          endpoint: '/api/servers',
+          method: 'GET',
+          status: res.status,
+          statusText: res.statusText,
+          durationMs,
+          responsePayload: rawText,
+          type: 'REGISTRY',
+          success: res.ok
+        });
+
+        if (res.ok) {
+          try {
+            const data = JSON.parse(rawText);
+            if (data && data.servers && data.servers.length > 0) {
+              setServers(data.servers);
+              const githubServer = data.servers.find((s: MCPServer) => s.id === 'github') || data.servers[0];
+              setSelectedServer(githubServer);
+            }
+          } catch (jsonErr) {
+            console.warn('Could not parse servers JSON payload:', jsonErr);
+          }
         }
-      })
-      .catch((err) => {
-        console.warn('Using mock servers fallback:', err);
-      });
+      } catch (err: any) {
+        console.error('🔴 [REGISTRY FETCH EXCEPTION in App.tsx]:', err);
+        apiDebugLogger.log({
+          endpoint: '/api/servers',
+          method: 'GET',
+          durationMs: 0,
+          errorMessage: err?.message || 'Network exception',
+          type: 'REGISTRY',
+          success: false
+        });
+      }
+    };
+
+    fetchServers();
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     const token = localStorage.getItem('mcp_auth_token');
     if (token) {
       try {
-        fetch('/api/auth/logout', {
+        const res = await fetch('/api/auth/logout', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => {});
-      } catch {}
+        });
+        const rawText = await res.text();
+        if (res.status >= 400 || !res.ok) {
+          console.group(`🚨 [HTTP ${res.status} DETECTED] /api/auth/logout`);
+          console.error('Status Code:', res.status, res.statusText);
+          console.error('Full Response Body:', rawText);
+          console.groupEnd();
+        }
+        apiDebugLogger.log({
+          endpoint: '/api/auth/logout',
+          method: 'POST',
+          status: res.status,
+          statusText: res.statusText,
+          durationMs: 0,
+          responsePayload: rawText,
+          type: 'AUTH',
+          success: res.ok
+        });
+      } catch (err: any) {
+        console.warn('Logout request warning:', err);
+      }
     }
     localStorage.removeItem('mcp_auth_token');
     localStorage.removeItem('mcp_user_profile');

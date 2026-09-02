@@ -11,6 +11,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { apiDebugLogger } from '../utils/api-debug';
 
 interface AuthPageProps {
   onLogin: (user: UserProfile) => void;
@@ -100,6 +101,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     }, 120);
 
     try {
+      const startTime = performance.now();
       const response = await fetch(`/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
@@ -107,9 +109,35 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         },
         body: JSON.stringify(payload)
       });
+      const durationMs = Math.round(performance.now() - startTime);
+      const text = await response.text();
+
+      // Log 500 or any non-200 responses with full payload details
+      if (response.status >= 400 || !response.ok) {
+        console.group(`🚨 [HTTP ${response.status} DETECTED] /api/auth/${endpoint}`);
+        console.error('Status Code:', response.status, response.statusText);
+        console.error('Request Payload:', payload);
+        console.error('Full Response Body:', text);
+        if (text.includes('FUNCTION_INVOCATION_FAILED') || text.includes('bom1::')) {
+          console.error('Edge Gateway Exception Code:', text.match(/bom1::[a-zA-Z0-9\-_]+/)?.[0] || 'FUNCTION_INVOCATION_FAILED');
+        }
+        console.groupEnd();
+      }
+
+      apiDebugLogger.log({
+        endpoint: `/api/auth/${endpoint}`,
+        method: 'POST',
+        status: response.status,
+        statusText: response.statusText,
+        durationMs,
+        requestPayload: payload,
+        responsePayload: text,
+        type: 'AUTH',
+        success: response.ok,
+        errorMessage: response.ok ? undefined : `Status ${response.status}: ${text.slice(0, 120)}`
+      });
 
       if (response.ok) {
-        const text = await response.text();
         let data: any = {};
         try {
           data = JSON.parse(text);
@@ -127,8 +155,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         }, 600);
         return;
       }
-    } catch (err) {
-      console.warn('Backend auth request fallback to local security session:', err);
+    } catch (err: any) {
+      console.error('🔴 [AUTH EXCEPTION in AuthPage.tsx]:', err);
+      apiDebugLogger.log({
+        endpoint: `/api/auth/${endpoint}`,
+        method: 'POST',
+        durationMs: 0,
+        requestPayload: payload,
+        errorMessage: err?.message || 'Network exception',
+        type: 'AUTH',
+        success: false
+      });
     }
 
     // Always succeed seamlessly with fallbackUser
