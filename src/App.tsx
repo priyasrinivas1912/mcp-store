@@ -62,11 +62,17 @@ export default function App() {
   // Load servers from backend API
   useEffect(() => {
     fetch('/api/servers')
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        try {
+          return await res.json();
+        } catch {
+          return null;
+        }
+      })
       .then((data) => {
-        if (data.servers && data.servers.length > 0) {
+        if (data && data.servers && data.servers.length > 0) {
           setServers(data.servers);
-          // Default selected server to GitHub or first verified server
           const githubServer = data.servers.find((s: MCPServer) => s.id === 'github') || data.servers[0];
           setSelectedServer(githubServer);
         }
@@ -79,10 +85,12 @@ export default function App() {
   const handleSignOut = () => {
     const token = localStorage.getItem('mcp_auth_token');
     if (token) {
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {});
+      try {
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
+      } catch {}
     }
     localStorage.removeItem('mcp_auth_token');
     localStorage.removeItem('mcp_user_profile');
