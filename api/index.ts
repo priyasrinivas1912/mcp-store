@@ -59,7 +59,12 @@ export function getNormalizedPath(req: any): string {
     const slug = Array.isArray(req.query.all) ? req.query.all.join('/') : String(req.query.all);
     return '/' + slug.replace(/^\/+/, '');
   }
-  const rawUrl = req.originalUrl || req.url || '';
+  const rawUrl =
+    req.headers?.['x-matched-path'] ||
+    req.headers?.['x-vercel-matched-path'] ||
+    req.originalUrl ||
+    req.url ||
+    '';
   return rawUrl.split('?')[0] || '';
 }
 
