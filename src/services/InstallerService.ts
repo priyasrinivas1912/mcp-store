@@ -60,26 +60,36 @@ class InstallerServiceClass {
     let daemonAvailable = false;
     let daemonLatency = 0;
     let daemonPath = '';
-    try {
-      const startTime = performance.now();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800);
+    
+    // Only attempt localhost ping if we are running in localhost/127.0.0.1 or Electron to prevent Mixed Content & Connection Refused errors on HTTPS/Vercel
+    const isLocalOrigin = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' || 
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'file:'
+    );
 
-      const resp = await fetch(`${this.localDaemonUrl}/ping`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: { 'X-MCP-Client': 'MCP-Store-Web' }
-      });
-      clearTimeout(timeoutId);
+    if (isLocalOrigin || isElectron) {
+      try {
+        const startTime = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600);
 
-      if (resp.ok) {
-        const data = await resp.json();
-        daemonAvailable = true;
-        daemonLatency = Math.round(performance.now() - startTime);
-        daemonPath = data.claudeConfigPath || '';
+        const resp = await fetch(`${this.localDaemonUrl}/ping`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { 'X-MCP-Client': 'MCP-Store-Web' }
+        }).catch(() => null);
+        clearTimeout(timeoutId);
+
+        if (resp && resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          daemonAvailable = true;
+          daemonLatency = Math.round(performance.now() - startTime);
+          daemonPath = data.claudeConfigPath || '';
+        }
+      } catch {
+        daemonAvailable = false;
       }
-    } catch {
-      daemonAvailable = false;
     }
 
     bridges.push({
