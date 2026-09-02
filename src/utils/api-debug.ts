@@ -5,6 +5,22 @@
  * and provides structured diagnostics.
  */
 
+export interface NetworkTracePayload {
+  endpoint: string;
+  method: string;
+  status?: number;
+  statusText?: string;
+  durationMs: number;
+  timestamp: string;
+  requestHeaders?: Record<string, string>;
+  requestPayload?: any;
+  responsePayload?: any;
+  rawResponseBody?: string;
+  gatewayErrorId?: string;
+  fallbackEngaged?: boolean;
+  userContext?: string;
+}
+
 export interface ApiLogEntry {
   id: string;
   timestamp: string;
@@ -17,6 +33,7 @@ export interface ApiLogEntry {
   responsePayload?: any;
   errorMessage?: string;
   gatewayErrorId?: string;
+  networkTrace?: NetworkTracePayload;
   type: 'AUTH' | 'INSTALL' | 'CONFIG' | 'REGISTRY' | 'AUDIT';
   success: boolean;
 }
@@ -26,9 +43,9 @@ class ApiDebugLogger {
   private maxLogs: number = 100;
 
   /**
-   * Log an API request lifecycle
+   * Log an API request lifecycle with structured network trace payloads
    */
-  log(entry: Omit<ApiLogEntry, 'id' | 'timestamp'>): ApiLogEntry {
+  log(entry: Omit<ApiLogEntry, 'id' | 'timestamp'> & { networkTrace?: NetworkTracePayload }): ApiLogEntry {
     const fullEntry: ApiLogEntry = {
       ...entry,
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
@@ -40,15 +57,25 @@ class ApiDebugLogger {
       this.logs.pop();
     }
 
-    // Console output for immediate developer visibility
+    // Console output for immediate developer visibility & network trace diagnostics
     if (!fullEntry.success || (fullEntry.status && fullEntry.status >= 400)) {
-      console.group(`🚨 [API-DEBUG ERROR] ${fullEntry.method} ${fullEntry.endpoint} [Status: ${fullEntry.status || 'FAILED'}]`);
+      console.group(`🚨 [API-DEBUG NETWORK TRACE] ${fullEntry.method} ${fullEntry.endpoint} [Status: ${fullEntry.status || 'FAILED'}]`);
       console.error('Timestamp:', fullEntry.timestamp);
       console.error('Duration:', `${fullEntry.durationMs}ms`);
       if (fullEntry.requestPayload) console.error('Request Payload:', fullEntry.requestPayload);
       if (fullEntry.responsePayload) console.error('Response Body:', fullEntry.responsePayload);
       if (fullEntry.errorMessage) console.error('Error Message:', fullEntry.errorMessage);
       if (fullEntry.gatewayErrorId) console.error('Gateway Error Code:', fullEntry.gatewayErrorId);
+      if (fullEntry.networkTrace) {
+        console.table({
+          Endpoint: fullEntry.networkTrace.endpoint,
+          Method: fullEntry.networkTrace.method,
+          Status: fullEntry.networkTrace.status ?? 'ERR',
+          Latency: `${fullEntry.networkTrace.durationMs}ms`,
+          FallbackEngaged: fullEntry.networkTrace.fallbackEngaged ? 'YES' : 'NO'
+        });
+        console.info('Full Network Trace Object:', fullEntry.networkTrace);
+      }
       console.groupEnd();
     } else {
       console.log(`✅ [API-DEBUG] ${fullEntry.method} ${fullEntry.endpoint} [${fullEntry.status}] (${fullEntry.durationMs}ms)`);
@@ -97,6 +124,21 @@ class ApiDebugLogger {
 
       const isSuccess = res.ok && !gatewayErrorId;
 
+      const trace: NetworkTracePayload = {
+        endpoint: url,
+        method: options.method || 'GET',
+        status: res.status,
+        statusText: res.statusText,
+        durationMs,
+        timestamp: new Date().toISOString(),
+        requestHeaders: options.headers as Record<string, string>,
+        requestPayload,
+        responsePayload: parsedData,
+        rawResponseBody: rawText,
+        gatewayErrorId,
+        fallbackEngaged: !isSuccess
+      };
+
       this.log({
         endpoint: url,
         method: options.method || 'GET',
@@ -107,6 +149,7 @@ class ApiDebugLogger {
         responsePayload: parsedData,
         errorMessage: isSuccess ? undefined : (typeof parsedData === 'string' ? parsedData : parsedData?.error || 'HTTP Error'),
         gatewayErrorId,
+        networkTrace: trace,
         type,
         success: isSuccess
       });
@@ -121,6 +164,18 @@ class ApiDebugLogger {
       const durationMs = Math.round(performance.now() - startTime);
       const errorMsg = err?.message || 'Network / Connectivity Failure';
 
+      const trace: NetworkTracePayload = {
+        endpoint: url,
+        method: options.method || 'GET',
+        status: 0,
+        statusText: 'FETCH_EXCEPTION',
+        durationMs,
+        timestamp: new Date().toISOString(),
+        requestPayload,
+        rawResponseBody: errorMsg,
+        fallbackEngaged: true
+      };
+
       this.log({
         endpoint: url,
         method: options.method || 'GET',
@@ -129,6 +184,7 @@ class ApiDebugLogger {
         durationMs,
         requestPayload,
         errorMessage: errorMsg,
+        networkTrace: trace,
         type,
         success: false
       });
