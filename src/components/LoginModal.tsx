@@ -238,6 +238,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         if (data.token) {
           localStorage.setItem('mcp_auth_token', data.token);
           localStorage.setItem('mcp_user_profile', JSON.stringify(data.user));
+          sessionStorage.setItem('mcp_auth_token', data.token);
+          sessionStorage.setItem('mcp_user_profile', JSON.stringify(data.user));
         }
 
         setTimeout(() => {
@@ -264,8 +266,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         authenticatedAt: new Date().toISOString()
       };
 
-      localStorage.setItem('mcp_auth_token', resolvedUser.accessToken || 'mcp_live_token');
+      const tokenToSave = resolvedUser.accessToken || 'mcp_live_token';
+      localStorage.setItem('mcp_auth_token', tokenToSave);
       localStorage.setItem('mcp_user_profile', JSON.stringify(resolvedUser));
+      sessionStorage.setItem('mcp_auth_token', tokenToSave);
+      sessionStorage.setItem('mcp_user_profile', JSON.stringify(resolvedUser));
       onSelectUser(resolvedUser);
       setFlowState('success');
     }, logsSequence.length * 140 + 200);

@@ -45,17 +45,25 @@ export default function App() {
     organization: 'Anthropic / MCP Workgroup'
   });
 
-  // Restore session from token on mount
+  // Restore session from storage layers (localStorage + sessionStorage) on mount
   useEffect(() => {
-    const token = localStorage.getItem('mcp_auth_token');
-    const savedProfile = localStorage.getItem('mcp_user_profile');
+    const token = localStorage.getItem('mcp_auth_token') || sessionStorage.getItem('mcp_auth_token');
+    const savedProfile = localStorage.getItem('mcp_user_profile') || sessionStorage.getItem('mcp_user_profile');
     if (token && savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile);
         setCurrentUser(parsed);
         setIsAuthenticated(true);
+        // Ensure both storage layers stay synchronized
+        localStorage.setItem('mcp_auth_token', token);
+        localStorage.setItem('mcp_user_profile', savedProfile);
+        sessionStorage.setItem('mcp_auth_token', token);
+        sessionStorage.setItem('mcp_user_profile', savedProfile);
       } catch (e) {
         localStorage.removeItem('mcp_auth_token');
+        sessionStorage.removeItem('mcp_auth_token');
+        localStorage.removeItem('mcp_user_profile');
+        sessionStorage.removeItem('mcp_user_profile');
       }
     }
   }, []);
@@ -119,7 +127,7 @@ export default function App() {
   }, []);
 
   const handleSignOut = async () => {
-    const token = localStorage.getItem('mcp_auth_token');
+    const token = localStorage.getItem('mcp_auth_token') || sessionStorage.getItem('mcp_auth_token');
     if (token) {
       try {
         const res = await fetch('/api/auth/logout', {
@@ -149,6 +157,8 @@ export default function App() {
     }
     localStorage.removeItem('mcp_auth_token');
     localStorage.removeItem('mcp_user_profile');
+    sessionStorage.removeItem('mcp_auth_token');
+    sessionStorage.removeItem('mcp_user_profile');
     setIsAuthenticated(false);
   };
 
