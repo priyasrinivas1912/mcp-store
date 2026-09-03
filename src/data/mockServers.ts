@@ -1395,3 +1395,4 @@ export const MOCK_SERVERS: MCPServer[] = [
 ];
 
 export const MOCK_MCP_SERVERS = MOCK_SERVERS;
+export default MOCK_SERVERS;
