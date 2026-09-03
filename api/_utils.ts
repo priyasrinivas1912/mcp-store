@@ -1,4 +1,4 @@
-import { MOCK_SERVERS } from './mockServers';
+import { MOCK_SERVERS } from './_mockServers';
 
 export interface UserSession {
   id: string;
