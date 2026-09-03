@@ -1899,37 +1899,103 @@ async function handler15(req, res) {
 }
 
 // api/index.ts
+function resolvePath(req) {
+  if (!req) return "/api";
+  const candidateHeader = req.headers?.["x-matched-path"] || req.headers?.["x-vercel-matched-path"] || req.headers?.["x-forwarded-url"] || req.headers?.["x-original-url"] || req.headers?.["x-rewrite-url"];
+  if (candidateHeader && typeof candidateHeader === "string") {
+    const cleanHeader = candidateHeader.split("?")[0];
+    if (!cleanHeader.endsWith("/api/index.js") && !cleanHeader.endsWith("/api/index")) {
+      return cleanHeader;
+    }
+  }
+  try {
+    const rawUrl = req.url || "";
+    const parsed = new URL(rawUrl, "http://localhost");
+    const paramPath = parsed.searchParams.get("path") || parsed.searchParams.get("route");
+    if (paramPath) {
+      return paramPath.startsWith("/") ? paramPath : `/api/${paramPath}`;
+    }
+    const pn = parsed.pathname;
+    if (pn && !pn.endsWith("/api/index.js") && !pn.endsWith("/api/index") && pn !== "/api" && pn !== "/api/") {
+      return pn;
+    }
+  } catch {
+  }
+  if (req.query) {
+    const qPath = req.query.path || req.query.route;
+    if (typeof qPath === "string") {
+      return qPath.startsWith("/") ? qPath : `/api/${qPath}`;
+    }
+  }
+  if (req.url && typeof req.url === "string") {
+    const cleanUrl = req.url.split("?")[0];
+    if (!cleanUrl.endsWith("/api/index.js") && !cleanUrl.endsWith("/api/index")) {
+      return cleanUrl;
+    }
+  }
+  return "/api";
+}
 async function handler16(req, res) {
   if (handleCors(req, res)) return;
-  const url = (req.url || "").toLowerCase();
-  if (url.includes("/health")) return handler(req, res);
-  if (url.includes("/system/status") || url.includes("/status")) return handler9(req, res);
-  if (url.includes("/auth/login")) return handler10(req, res);
-  if (url.includes("/auth/logout")) return handler11(req, res);
-  if (url.includes("/auth/me")) return handler12(req, res);
-  if (url.includes("/auth/oauth")) return handler13(req, res);
-  if (url.includes("/auth/signup")) return handler14(req, res);
-  if (url.includes("/auth/users")) return handler15(req, res);
-  if (url.includes("/install") && !url.includes("/uninstall")) return handler3(req, res);
-  if (url.includes("/uninstall")) return handler4(req, res);
-  if (url.includes("/claude-config")) return handler5(req, res);
-  if (url.includes("/scan-repo")) return handler6(req, res);
-  if (url.includes("/simulate-tool-call")) return handler7(req, res);
-  if (url.includes("/ai-explain-security")) return handler8(req, res);
-  if (url.includes("/servers")) return handler2(req, res);
-  const updatedServers = MOCK_SERVERS.map((s) => ({
-    ...s,
-    installed: installedIds.has(s.id)
-  }));
-  return sendResponse(res, 200, {
-    status: "ok",
-    total: updatedServers.length,
-    servers: updatedServers,
-    installedCount: installedIds.size,
-    verifiedCount: updatedServers.filter((s) => s.verified).length,
-    categories: Array.from(new Set(updatedServers.map((s) => s.category)))
-  });
+  try {
+    const rawPath = resolvePath(req);
+    const path = rawPath.toLowerCase();
+    if (path.includes("/health")) {
+      return await handler(req, res);
+    }
+    if (path.includes("/system/status") || path.includes("/system") || path.endsWith("/status")) {
+      return await handler9(req, res);
+    }
+    if (path.includes("/auth/login")) {
+      return await handler10(req, res);
+    }
+    if (path.includes("/auth/logout")) {
+      return await handler11(req, res);
+    }
+    if (path.includes("/auth/me")) {
+      return await handler12(req, res);
+    }
+    if (path.includes("/auth/oauth")) {
+      return await handler13(req, res);
+    }
+    if (path.includes("/auth/signup")) {
+      return await handler14(req, res);
+    }
+    if (path.includes("/auth/users")) {
+      return await handler15(req, res);
+    }
+    if (path.includes("/uninstall")) {
+      return await handler4(req, res);
+    }
+    if (path.includes("/install")) {
+      return await handler3(req, res);
+    }
+    if (path.includes("/claude-config")) {
+      return await handler5(req, res);
+    }
+    if (path.includes("/scan-repo")) {
+      return await handler6(req, res);
+    }
+    if (path.includes("/simulate-tool-call")) {
+      return await handler7(req, res);
+    }
+    if (path.includes("/ai-explain-security")) {
+      return await handler8(req, res);
+    }
+    if (path.includes("/servers") || path === "/api" || path === "/api/") {
+      return await handler2(req, res);
+    }
+    return await handler2(req, res);
+  } catch (error) {
+    console.error("[API Smart Dispatcher Error]:", error);
+    return sendResponse(res, 500, {
+      status: "error",
+      message: error?.message || "Internal Serverless API Error",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  }
 }
 export {
-  handler16 as default
+  handler16 as default,
+  resolvePath
 };

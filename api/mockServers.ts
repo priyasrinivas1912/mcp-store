@@ -1393,4 +1393,17 @@ export const MOCK_SERVERS: any[] = [
 ];
 
 export const MOCK_MCP_SERVERS = MOCK_SERVERS;
-export default MOCK_SERVERS;
+
+export default async function handler(req: any, res: any) {
+  if (res && typeof res.setHeader === 'function') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  if (res && typeof res.status === 'function' && typeof res.json === 'function') {
+    return res.status(200).json({ status: 'ok', total: MOCK_SERVERS.length, servers: MOCK_SERVERS });
+  }
+  if (res) {
+    res.statusCode = 200;
+    res.end(JSON.stringify({ status: 'ok', total: MOCK_SERVERS.length, servers: MOCK_SERVERS }));
+  }
+}
