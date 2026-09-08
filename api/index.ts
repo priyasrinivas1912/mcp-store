@@ -1,23 +1,23 @@
-import { sendResponse, handleCors } from './_utils';
-import { resolveRequestPath, identifyRoute } from './_path-resolver';
+import { sendResponse, handleCors } from '../server/api-internal/_utils';
+import { resolveRequestPath, identifyRoute } from '../server/api-internal/_path-resolver';
 
-import healthHandler from './health';
-import serversHandler from './servers';
-import installHandler from './install';
-import uninstallHandler from './uninstall';
-import claudeConfigHandler from './claude-config';
-import scanRepoHandler from './scan-repo';
-import simulateHandler from './simulate-tool-call';
-import aiExplainHandler from './ai-explain-security';
-import systemStatusHandler from './system/status';
-import loginHandler from './auth/login';
-import logoutHandler from './auth/logout';
-import meHandler from './auth/me';
-import oauthHandler from './auth/oauth';
-import signupHandler from './auth/signup';
-import usersHandler from './auth/users';
+import healthHandler from '../server/api-internal/health';
+import serversHandler from '../server/api-internal/servers';
+import installHandler from '../server/api-internal/install';
+import uninstallHandler from '../server/api-internal/uninstall';
+import claudeConfigHandler from '../server/api-internal/claude-config';
+import scanRepoHandler from '../server/api-internal/scan-repo';
+import simulateHandler from '../server/api-internal/simulate-tool-call';
+import aiExplainHandler from '../server/api-internal/ai-explain-security';
+import systemStatusHandler from '../server/api-internal/system/status';
+import loginHandler from '../server/api-internal/auth/login';
+import logoutHandler from '../server/api-internal/auth/logout';
+import meHandler from '../server/api-internal/auth/me';
+import oauthHandler from '../server/api-internal/auth/oauth';
+import signupHandler from '../server/api-internal/auth/signup';
+import usersHandler from '../server/api-internal/auth/users';
 
-export { resolveRequestPath, identifyRoute } from './_path-resolver';
+export { resolveRequestPath, identifyRoute } from '../server/api-internal/_path-resolver';
 
 /**
  * Master Centralized API Handler
