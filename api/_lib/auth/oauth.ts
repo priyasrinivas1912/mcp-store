@@ -1,4 +1,5 @@
-import { parseBody, sendResponse, handleCors, sessionUsers, UserSession } from '../_utils.ts';
+import { parseBody, sendResponse, handleCors, sessionUsers } from '../_utils.ts';
+import type { UserSession } from '../_utils.ts';
 
 export default async function handler(req: any, res: any) {
   if (handleCors(req, res)) return;
