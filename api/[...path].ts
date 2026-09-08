@@ -1,23 +1,23 @@
-import { sendResponse, handleCors } from './_lib/_utils';
-import { resolveRequestPath, identifyRoute } from './_lib/_path-resolver';
+import { sendResponse, handleCors } from './_lib/_utils.ts';
+import { resolveRequestPath, identifyRoute } from './_lib/_path-resolver.ts';
 
-import healthHandler from './_lib/health';
-import serversHandler from './_lib/servers';
-import installHandler from './_lib/install';
-import uninstallHandler from './_lib/uninstall';
-import claudeConfigHandler from './_lib/claude-config';
-import scanRepoHandler from './_lib/scan-repo';
-import simulateHandler from './_lib/simulate-tool-call';
-import aiExplainHandler from './_lib/ai-explain-security';
-import systemStatusHandler from './_lib/system/status';
-import loginHandler from './_lib/auth/login';
-import logoutHandler from './_lib/auth/logout';
-import meHandler from './_lib/auth/me';
-import oauthHandler from './_lib/auth/oauth';
-import signupHandler from './_lib/auth/signup';
-import usersHandler from './_lib/auth/users';
+import healthHandler from './_lib/health.ts';
+import serversHandler from './_lib/servers.ts';
+import installHandler from './_lib/install.ts';
+import uninstallHandler from './_lib/uninstall.ts';
+import claudeConfigHandler from './_lib/claude-config.ts';
+import scanRepoHandler from './_lib/scan-repo.ts';
+import simulateHandler from './_lib/simulate-tool-call.ts';
+import aiExplainHandler from './_lib/ai-explain-security.ts';
+import systemStatusHandler from './_lib/system/status.ts';
+import loginHandler from './_lib/auth/login.ts';
+import logoutHandler from './_lib/auth/logout.ts';
+import meHandler from './_lib/auth/me.ts';
+import oauthHandler from './_lib/auth/oauth.ts';
+import signupHandler from './_lib/auth/signup.ts';
+import usersHandler from './_lib/auth/users.ts';
 
-export { resolveRequestPath, identifyRoute } from './_lib/_path-resolver';
+export { resolveRequestPath, identifyRoute } from './_lib/_path-resolver.ts';
 
 /**
  * Master Centralized API Handler

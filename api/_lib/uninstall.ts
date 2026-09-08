@@ -1,4 +1,4 @@
-import { parseBody, sendResponse, handleCors, installedIds } from './_utils';
+import { parseBody, sendResponse, handleCors, installedIds } from './_utils.ts';
 
 export default async function handler(req: any, res: any) {
   if (handleCors(req, res)) return;
