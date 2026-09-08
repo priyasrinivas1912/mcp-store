@@ -371,7 +371,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-[#050505] text-[#e5e5e5] flex flex-col justify-center items-center px-4 py-8 selection:bg-[#10b981]/25 selection:text-[#10b981] relative overflow-hidden">
       {/* Background Decorative Grids & Glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(16,185,129,0.08),rgba(255,255,255,0))] pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#111111_1px,transparent_1px),linear-gradient(to_bottom,#111111_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-35 pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#111111_1px,transparent_1px),linear-gradient(to_bottom,#111111_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-35 pointer-events-none" />
 
       <div className="w-full max-w-md z-10 flex flex-col items-center">
         {/* Top Header: Website Title */}
@@ -467,7 +467,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                     setPassword('••••••••••••');
                     setName(persona.name);
                     setRole(persona.role);
-                    setOrganization(persona.organization);
+                    setOrganization(persona.organization || '');
                     handleExecuteAuth('login', { email: persona.email, password: 'demo' }, persona);
                   }}
                   className="w-full text-left px-2.5 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#10b981]/40 flex items-center justify-between group transition-all cursor-pointer"
